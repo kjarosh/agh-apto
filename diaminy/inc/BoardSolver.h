@@ -3,12 +3,12 @@
 
 #include "Board.h"
 
-typedef std::vector<Move> solution_t;
+typedef std::vector<Direction> solution_t;
 
 struct GameState {
     const Board *board;
     std::set<size_t> gathered_diamonds;
-    std::vector<Move> moves;
+    std::vector<Direction> moves;
     dim_t x, y;
 
     inline GameState next(Move &move) const {
@@ -17,7 +17,7 @@ struct GameState {
         std::copy(move.diamonds.begin(), move.diamonds.end(),
                   std::inserter(ret.gathered_diamonds, ret.gathered_diamonds.end()));
         ret.moves = moves;
-        ret.moves.push_back(move);
+        ret.moves.push_back(move.direction);
         ret.x = move.to_x;
         ret.y = move.to_y;
         ret.board = board;
@@ -89,7 +89,7 @@ struct GameState {
         auto i2 = g.moves.begin();
         auto e2 = g.moves.end();
         while (i1 != e1 && i2 != e2) {
-            if ((*i1).direction != (*i2).direction) {
+            if ((*i1) != (*i2)) {
                 return false;
             }
 
@@ -106,7 +106,7 @@ namespace std {
         std::size_t operator()(const GameState &g) const {
             std::size_t seed = g.moves.size();
             for (auto &i : g.moves) {
-                seed ^= i.direction + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+                seed ^= i + 0x9e3779b9 + (seed << 6) + (seed >> 2);
             }
             return seed;
         }
