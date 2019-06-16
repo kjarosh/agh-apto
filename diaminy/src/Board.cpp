@@ -41,17 +41,57 @@ dim_t Board::get_ball_y() {
     return ball_y;
 }
 
-BoardParser::BoardParser(std::istream input) {
-    std::string line;
-    while (std::getline(input, line)) {
-        lines.push_back(line);
+Board *BoardParser::parse(std::istream &input) {
+    dim_t width, height;
+    size_t max_moves;
+    std::vector<std::string> lines;
+
+    input >> height;
+    input >> width;
+    input >> max_moves;
+
+    auto *board = new Board(width, height);
+
+    for (dim_t y = 0; y < height; ++y) {
+        for (dim_t x = 0; x < width; ++x) {
+            CellType type;
+
+            char ch;
+            do {
+                input.get(ch);
+            } while (ch == '\n');
+
+            switch (ch) {
+                case '+':
+                    type = DIAMOND;
+                    break;
+
+                case '*':
+                    type = MINE;
+                    break;
+
+                case '#':
+                    type = CONCRETE;
+                    break;
+
+                case 'O':
+                    type = HOLE;
+                    break;
+
+                case '.':
+                    board->set_ball(x, y);
+
+                case ' ':
+                    type = SPACE;
+                    break;
+
+                default:
+                    throw std::invalid_argument("invalid cell type");
+            }
+
+            board->set_cell(x, y, type);
+        }
     }
 
-    if (lines.empty()) {
-        throw std::invalid_argument("empty board");
-    }
-}
-
-Board *BoardParser::parse() {
-
+    return board;
 }
