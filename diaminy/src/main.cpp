@@ -2,10 +2,13 @@
 
 int main(int argc, char **argv) {
     Board *board = BoardParser::parse(std::cin);
+    solution_t solution = BoardSolver::solve(board);
 
-    std::cout << "Done" << std::endl;
+    for (auto &i : solution) {
+        std::cout << i.direction; // << '/' << i.to_x << ',' << i.to_y << ' ';
+    }
 
-    std::cout << board->get_cell(0, 0) << std::endl;
+    std::cout << '\n';
 
     delete board;
 }
