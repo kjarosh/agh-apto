@@ -2,17 +2,27 @@
 
 solution_t BoardSolver::solve(Board *board) {
     BoardGraph graph(board);
+#ifdef DEBUG
+    graph.print();
+#endif
     return graph.search();
 }
 
 BoardGraph::BoardGraph(Board *board) :
         board(board),
         adjacency(board->get_size()),
-        adjacencyTranspose(board->get_size()) {
+        adjacency_transpose(board->get_size()),
+        scc_leader_mapping(board->get_size()),
+        scc_adjacency(board->get_size()) {
     std::set<idx_t> filled = {};
     fill_graph(board->get_ball_index(), filled);
-
     fill_transpose();
+
+    std::set<idx_t> visiting;
+    std::vector<idx_t> visited_stack;
+    dfs_visit(board->get_ball_index(), visiting, visited_stack);
+    build_scc(visited_stack);
+    build_scc_graph();
 }
 
 BoardGraph::~BoardGraph() {
@@ -43,7 +53,7 @@ void BoardGraph::fill_transpose() {
     for (idx_t ix = 0; ix < adjacency.size(); ++ix) {
         for (auto &move : adjacency[ix]) {
             idx_t ix_to = move.to;
-            adjacencyTranspose[ix_to].push_back(ix);
+            adjacency_transpose[ix_to].push_back(ix);
         }
     }
 }
@@ -51,14 +61,44 @@ void BoardGraph::fill_transpose() {
 void BoardGraph::print() {
     size_t i = 0;
     for (auto &a : adjacency) {
-        dim_t x, y;
+        size_t x, y;
         std::tie(x, y) = board->from_index(i++);
         std::cout << x << ',' << y << ": [";
         for (auto &a2 : a) {
-            std::cout << '(' << a2.direction << ": " << a2.to << '/' << a2.diamonds.size() << "); ";
+            size_t x2, y2;
+            std::tie(x2, y2) = board->from_index(a2.to);
+            std::cout << '(' << a2.direction << ": " << x2 << ',' << y2 << '/' << a2.diamonds.size() << "); ";
         }
         std::cout << ']' << '\n';
     }
+
+    std::cout << "SCC leaders:" << '\n';
+    for (auto &leader : scc_leaders) {
+        size_t x, y;
+        std::tie(x, y) = board->from_index(leader);
+        std::cout << x << ',' << y << "; ";
+    }
+    std::cout << '\n';
+
+    std::cout << "SCC adjacency:" << '\n';
+    size_t i2 = 0;
+    for (auto &neighs : scc_adjacency) {
+        if (scc_leaders.find(i2) == scc_leaders.end()) {
+            ++i2;
+            continue;
+        }
+
+        size_t x, y;
+        std::tie(x, y) = board->from_index(i2++);
+        std::cout << x << ',' << y << ": [";
+        for (idx_t neigh : neighs) {
+            size_t x2, y2;
+            std::tie(x2, y2) = board->from_index(neigh);
+            std::cout << x2 << ',' << y2 << "; ";
+        }
+        std::cout << ']' << '\n';
+    }
+    std::cout << '\n';
 }
 
 solution_t BoardGraph::search() {
@@ -109,55 +149,55 @@ solution_t BoardGraph::search0(std::vector<std::unordered_set<GameState>> &compu
     return best;
 }
 
-int GameState::compare(const GameState &other) const {
-    const std::set<idx_t> &mine = gathered_diamonds;
-    const std::set<idx_t> &theirs = other.gathered_diamonds;
-    auto mine_end = mine.end();
-    auto theirs_end = theirs.end();
-    bool i_have_more = false;
-    bool they_have_more = false;
+void BoardGraph::dfs_visit(idx_t position, std::set<idx_t> &visiting, std::vector<idx_t> &visited_stack) const {
+    visiting.insert(position);
 
-    auto my_iter = mine.begin();
-    auto their_iter = theirs.begin();
-
-    while (my_iter != mine_end && their_iter != theirs_end) {
-        idx_t my_val = *my_iter;
-        idx_t their_val = *my_iter;
-        if (my_val > their_val) {
-            they_have_more = true;
-            ++their_iter;
-        } else if (my_val < their_val) {
-            i_have_more = true;
-            ++my_iter;
-        } else {
-            ++their_iter;
-            ++my_iter;
+    for (const Move &move : adjacency[position]) {
+        idx_t neigh = move.to;
+        if (visiting.find(neigh) == visiting.end()) {
+            dfs_visit(neigh, visiting, visited_stack);
         }
     }
 
-    size_t other_moves_size = other.moves.size();
-    size_t moves_size = moves.size();
-    if (my_iter == mine_end && their_iter == theirs_end) {
-        if (!i_have_more && !they_have_more) {
-            return other_moves_size - moves_size;
+    visited_stack.push_back(position);
+}
+
+void BoardGraph::build_scc(std::vector<idx_t> &visited_stack) {
+    std::set<idx_t> visiting;
+    for (auto i = visited_stack.rbegin(); i != visited_stack.rend(); ++i) {
+        idx_t ix = *i;
+        if (visiting.find(ix) != visiting.end()) {
+            continue;
         }
-    } else if (my_iter == mine_end && their_iter != theirs_end) {
-        they_have_more = true;
-    } else if (my_iter != mine_end && their_iter == theirs_end) {
-        i_have_more = true;
-    }
 
-    if (i_have_more == they_have_more) {
-        return 0;
-    }
+        scc_leaders.insert(ix);
 
-    if (they_have_more && other_moves_size < moves_size) {
-        return -1;
+        dfs_visit_transpose(ix, ix, visiting);
     }
+}
 
-    if (i_have_more && other_moves_size > moves_size) {
-        return 1;
+void BoardGraph::dfs_visit_transpose(idx_t leader, idx_t ix, std::set<idx_t> &visiting) {
+    visiting.insert(ix);
+    scc_leader_mapping[ix] = leader;
+
+    for (idx_t &neigh : adjacency_transpose[ix]) {
+        if (visiting.find(neigh) == visiting.end()) {
+            dfs_visit_transpose(leader, neigh, visiting);
+        }
     }
+}
 
-    return 0;
+void BoardGraph::build_scc_graph() {
+    size_t i = 0;
+    for (auto &neighbors : adjacency) {
+        idx_t ix_leader = scc_leader_mapping[(i++)];
+
+        for (auto &move : neighbors) {
+            idx_t ix_to_leader = scc_leader_mapping[move.to];
+
+            if (ix_leader != ix_to_leader) {
+                scc_adjacency[ix_leader].insert(ix_to_leader);
+            }
+        }
+    }
 }

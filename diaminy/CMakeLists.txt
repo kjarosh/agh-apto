@@ -5,6 +5,7 @@ set(CMAKE_CXX_STANDARD 11)
 include_directories(inc)
 
 set(SOURCES src/main.cpp)
+add_compile_definitions(DEBUG)
 
 add_executable(${PROJECT_NAME} ${SOURCES})
 
