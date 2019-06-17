@@ -140,9 +140,7 @@ Board *BoardParser::parse(std::istream &input) {
             CellType type;
 
             char ch;
-            do {
-                input.get(ch);
-            } while (ch == '\n');
+            input.get(ch);
 
             switch (ch) {
                 case '+':
@@ -169,7 +167,8 @@ Board *BoardParser::parse(std::istream &input) {
                     break;
 
                 default:
-                    throw std::invalid_argument("invalid cell type");
+                    --x;
+                    continue;
             }
 
             board->set_cell(x, y, type);
