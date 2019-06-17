@@ -8,23 +8,23 @@ solution_t BoardSolver::solve(Board *board) {
 BoardGraph::BoardGraph(Board *board) :
         board(board),
         adjacency(board->get_width() * board->get_height()) {
-    std::set<size_t> filled = {};
+    std::set<idx_t> filled = {};
     fill_graph(board->get_ball_x(), board->get_ball_y(), filled);
 }
 
-void BoardGraph::fill_graph(dim_t x, dim_t y, std::set<size_t> &filled) {
-    size_t ix = board->to_index(x, y);
+void BoardGraph::fill_graph(dim_t x, dim_t y, std::set<idx_t> &filled) {
+    idx_t ix = board->to_index(x, y);
     filled.insert(ix);
 
     for (auto &dir : all_directions) {
         Move move = board->move(x, y, dir);
 
-        if (!move.is_valid()) {
+        if (move.position_equals(x, y)) {
             // no move
             continue;
         }
 
-        size_t next_ix = board->to_index(move.to_x, move.to_y);
+        idx_t next_ix = board->to_index(move.to_x, move.to_y);
         adjacency[ix].push_back(move);
 
         if (filled.find(next_ix) == filled.end()) {
@@ -53,7 +53,7 @@ solution_t BoardGraph::search() {
 }
 
 solution_t BoardGraph::search0(std::vector<std::unordered_set<GameState>> &computed_states, const GameState &state) {
-    size_t ix = board->to_index(state.x, state.y);
+    idx_t ix = board->to_index(state.x, state.y);
 
     if (state.is_finished()) {
         return state.moves;
@@ -92,4 +92,57 @@ solution_t BoardGraph::search0(std::vector<std::unordered_set<GameState>> &compu
     }
 
     return best;
+}
+
+int GameState::compare(const GameState &other) const {
+    const std::set<idx_t> &mine = gathered_diamonds;
+    const std::set<idx_t> &theirs = other.gathered_diamonds;
+    auto mine_end = mine.end();
+    auto theirs_end = theirs.end();
+    bool i_have_more = false;
+    bool they_have_more = false;
+
+    auto my_iter = mine.begin();
+    auto their_iter = theirs.begin();
+
+    while (my_iter != mine_end && their_iter != theirs_end) {
+        idx_t my_val = *my_iter;
+        idx_t their_val = *my_iter;
+        if (my_val > their_val) {
+            they_have_more = true;
+            ++their_iter;
+        } else if (my_val < their_val) {
+            i_have_more = true;
+            ++my_iter;
+        } else {
+            ++their_iter;
+            ++my_iter;
+        }
+    }
+
+    size_t other_moves_size = other.moves.size();
+    size_t moves_size = moves.size();
+    if (my_iter == mine_end && their_iter == theirs_end) {
+        if (!i_have_more && !they_have_more) {
+            return other_moves_size - moves_size;
+        }
+    } else if (my_iter == mine_end && their_iter != theirs_end) {
+        they_have_more = true;
+    } else if (my_iter != mine_end && their_iter == theirs_end) {
+        i_have_more = true;
+    }
+
+    if (i_have_more == they_have_more) {
+        return 0;
+    }
+
+    if (they_have_more && other_moves_size < moves_size) {
+        return -1;
+    }
+
+    if (i_have_more && other_moves_size > moves_size) {
+        return 1;
+    }
+
+    return 0;
 }

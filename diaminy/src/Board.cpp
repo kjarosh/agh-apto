@@ -79,8 +79,6 @@ std::tuple<dim_t, dim_t> Board::move_single(dim_t x, dim_t y, Direction dir) con
 
 Move Board::move(dim_t original_x, dim_t original_y, Direction dir) const {
     Move ret{};
-    ret.from_x = original_x;
-    ret.from_y = original_y;
     ret.direction = dir;
 
     dim_t x = original_x;
@@ -125,7 +123,7 @@ Move Board::move(dim_t original_x, dim_t original_y, Direction dir) const {
 }
 
 Board *BoardParser::parse(std::istream &input) {
-    dim_t width, height;
+    size_t width, height;
     size_t max_moves;
     std::vector<std::string> lines;
 

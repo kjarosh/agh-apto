@@ -1,7 +1,8 @@
 #ifndef DIAMINY_BOARD_H
 #define DIAMINY_BOARD_H
 
-typedef size_t dim_t;
+using dim_t = uint8_t;
+using idx_t = uint16_t;
 
 enum CellType {
     SPACE = 0,
@@ -34,13 +35,12 @@ Direction all_directions[] = {
 };
 
 struct Move {
-    dim_t from_x, from_y;
     dim_t to_x, to_y;
-    std::set<size_t> diamonds;
+    std::set<idx_t> diamonds;
     Direction direction;
 
-    inline bool is_valid() {
-        return from_x != to_x || from_y != to_y;
+    inline bool position_equals(dim_t from_x, dim_t from_y) {
+        return from_x == to_x && from_y == to_y;
     }
 };
 
@@ -52,7 +52,7 @@ private:
 
     CellType **board;
 
-    std::set<size_t> diamond_positions;
+    std::set<idx_t> diamond_positions;
 
     dim_t ball_x{0}, ball_y{0};
 
@@ -77,7 +77,7 @@ public:
         return ball_y;
     }
 
-    inline std::set<size_t> get_diamond_positions() const {
+    inline std::set<idx_t> get_diamond_positions() const {
         return diamond_positions;
     }
 
@@ -89,11 +89,11 @@ public:
         return height;
     }
 
-    inline size_t to_index(dim_t x, dim_t y) const {
+    inline idx_t to_index(dim_t x, dim_t y) const {
         return x + y * width;
     }
 
-    inline std::tuple<dim_t, dim_t> from_index(size_t ix) const {
+    inline std::tuple<dim_t, dim_t> from_index(idx_t ix) const {
         return std::make_tuple(ix % width, ix / width);
     }
 

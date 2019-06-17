@@ -3,11 +3,11 @@
 
 #include "Board.h"
 
-typedef std::vector<Direction> solution_t;
+using solution_t = std::vector<Direction>;
 
 struct GameState {
     const Board *board;
-    std::set<size_t> gathered_diamonds;
+    std::set<idx_t> gathered_diamonds;
     std::vector<Direction> moves;
     dim_t x, y;
 
@@ -24,56 +24,7 @@ struct GameState {
         return ret;
     }
 
-    inline int compare(const GameState &other) const {
-        const std::set<size_t> &mine = gathered_diamonds;
-        const std::set<size_t> &theirs = other.gathered_diamonds;
-        auto mine_end = mine.end();
-        auto theirs_end = theirs.end();
-        bool i_have_more = false;
-        bool they_have_more = false;
-
-        auto my_iter = mine.begin();
-        auto their_iter = theirs.begin();
-
-        while (my_iter != mine_end && their_iter != theirs_end) {
-            size_t my_val = *my_iter;
-            size_t their_val = *my_iter;
-            if (my_val > their_val) {
-                they_have_more = true;
-                ++their_iter;
-            } else if (my_val < their_val) {
-                i_have_more = true;
-                ++my_iter;
-            } else {
-                ++their_iter;
-                ++my_iter;
-            }
-        }
-
-        if (my_iter == mine_end && their_iter == theirs_end) {
-            if (!i_have_more && !they_have_more) {
-                return other.moves.size() - moves.size();
-            }
-        } else if (my_iter == mine_end && their_iter != theirs_end) {
-            they_have_more = true;
-        } else if (my_iter != mine_end && their_iter == theirs_end) {
-            i_have_more = true;
-        }
-
-        if (i_have_more == they_have_more) {
-            return 0;
-        }
-
-        if (they_have_more && other.moves.size() < moves.size()) {
-            return -1;
-        }
-
-        if (i_have_more && other.moves.size() > moves.size()) {
-            return 1;
-        }
-
-        return 0;
-    }
+    int compare(const GameState &other) const;
 
     inline static GameState initial(const Board *board) {
         return {board, {}, {}, board->get_ball_x(), board->get_ball_y()};
@@ -119,7 +70,7 @@ private:
 
     Board *board;
 
-    void fill_graph(dim_t x, dim_t y, std::set<size_t> &filled);
+    void fill_graph(dim_t x, dim_t y, std::set<idx_t> &filled);
 
     solution_t search0(std::vector<std::unordered_set<GameState>> &computed_states, const GameState &state);
 
