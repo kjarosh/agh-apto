@@ -7,28 +7,32 @@ solution_t BoardSolver::solve(Board *board) {
 
 BoardGraph::BoardGraph(Board *board) :
         board(board),
-        adjacency(board->get_width() * board->get_height()) {
+        adjacency(board->get_size()),
+        adjacencyTranspose(board->get_size()) {
     std::set<idx_t> filled = {};
-    fill_graph(board->get_ball_x(), board->get_ball_y(), filled);
+    fill_graph(board->get_ball_index(), filled);
 }
 
-void BoardGraph::fill_graph(dim_t x, dim_t y, std::set<idx_t> &filled) {
-    idx_t ix = board->to_index(x, y);
+BoardGraph::~BoardGraph() {
+
+}
+
+void BoardGraph::fill_graph(idx_t ix, std::set<idx_t> &filled) {
     filled.insert(ix);
 
     for (auto &dir : all_directions) {
-        Move move = board->move(x, y, dir);
+        Move move = board->move(ix, dir);
 
-        if (move.position_equals(x, y)) {
+        if (move.position_equals(ix)) {
             // no move
             continue;
         }
 
-        idx_t next_ix = board->to_index(move.to_x, move.to_y);
+        idx_t next_ix = move.to;
         adjacency[ix].push_back(move);
 
         if (filled.find(next_ix) == filled.end()) {
-            fill_graph(move.to_x, move.to_y, filled);
+            fill_graph(move.to, filled);
         }
     }
 }
@@ -40,7 +44,7 @@ void BoardGraph::print() {
         std::tie(x, y) = board->from_index(i++);
         std::cout << x << ',' << y << ": [";
         for (auto &a2 : a) {
-            std::cout << '(' << a2.direction << ": " << a2.to_x << ',' << a2.to_y << '/' << a2.diamonds.size() << "); ";
+            std::cout << '(' << a2.direction << ": " << a2.to << '/' << a2.diamonds.size() << "); ";
         }
         std::cout << ']' << '\n';
     }
@@ -53,7 +57,7 @@ solution_t BoardGraph::search() {
 }
 
 solution_t BoardGraph::search0(std::vector<std::unordered_set<GameState>> &computed_states, const GameState &state) {
-    idx_t ix = board->to_index(state.x, state.y);
+    idx_t ix = state.position;
 
     if (state.is_finished()) {
         return state.moves;

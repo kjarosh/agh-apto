@@ -9,7 +9,7 @@ struct GameState {
     const Board *board;
     std::set<idx_t> gathered_diamonds;
     std::vector<Direction> moves;
-    dim_t x, y;
+    idx_t position;
 
     inline GameState next(Move &move) const {
         GameState ret;
@@ -18,8 +18,7 @@ struct GameState {
                   std::inserter(ret.gathered_diamonds, ret.gathered_diamonds.end()));
         ret.moves = moves;
         ret.moves.push_back(move.direction);
-        ret.x = move.to_x;
-        ret.y = move.to_y;
+        ret.position = move.to;
         ret.board = board;
         return ret;
     }
@@ -27,7 +26,7 @@ struct GameState {
     int compare(const GameState &other) const;
 
     inline static GameState initial(const Board *board) {
-        return {board, {}, {}, board->get_ball_x(), board->get_ball_y()};
+        return {board, {}, {}, board->get_ball_index()};
     }
 
     inline bool is_finished() const {
@@ -68,14 +67,18 @@ class BoardGraph {
 private:
     std::vector<std::vector<Move>> adjacency;
 
+    std::vector<std::vector<idx_t>> adjacencyTranspose;
+
     Board *board;
 
-    void fill_graph(dim_t x, dim_t y, std::set<idx_t> &filled);
+    void fill_graph(idx_t position, std::set<idx_t> &filled);
 
     solution_t search0(std::vector<std::unordered_set<GameState>> &computed_states, const GameState &state);
 
 public:
     explicit BoardGraph(Board *board);
+
+    virtual ~BoardGraph();
 
     void print();
 

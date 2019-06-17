@@ -1,117 +1,109 @@
 #include "Board.h"
 
 Board::Board(dim_t width, dim_t height, size_t max_moves) :
-        width(width), height(height), max_moves(max_moves) {
-    board = new CellType *[width];
-    for (size_t i = 0; i < width; ++i) {
-        board[i] = new CellType[height];
-    }
+        width(width), height(height), max_moves(max_moves), size(width * height) {
+    board = new CellType[size];
 }
 
-void Board::set_cell(dim_t x, dim_t y, CellType type) {
-    if (x >= width || y >= height) {
+Board::~Board() {
+    delete[] board;
+}
+
+void Board::set_cell(idx_t position, CellType type) {
+    if (position < 0 || position >= size) {
         throw std::invalid_argument("out or range");
     }
 
-    board[x][y] = type;
+    board[position] = type;
     if (type == DIAMOND) {
-        diamond_positions.insert(to_index(x, y));
+        diamond_positions.insert(position);
     }
 }
 
-void Board::set_ball(dim_t x, dim_t y) {
-    if (x >= width || y >= height) {
+void Board::set_ball(idx_t position) {
+    if (position < 0 || position >= size) {
         throw std::invalid_argument("out or range");
     }
 
-    ball_x = x;
-    ball_y = y;
+    ball_position = position;
 }
 
-CellType Board::get_cell(dim_t x, dim_t y) const {
-    if (x >= width || y >= height) {
+CellType Board::get_cell(idx_t position) const {
+    if (position < 0 || position >= size) {
         throw std::invalid_argument("out or range");
     }
 
-    return board[x][y];
+    return board[position];
 }
 
-std::tuple<dim_t, dim_t> Board::move_single(dim_t x, dim_t y, Direction dir) const {
-    dim_t x2 = x;
-    dim_t y2 = y;
+idx_t Board::move_single(idx_t position, Direction dir) const {
+    dim_t x, y;
+    std::tie(x, y) = from_index(position);
     switch (dir) {
         case UP:
-            --y2;
+            --y;
             break;
         case UP_RIGHT:
-            ++x2;
-            --y2;
+            ++x;
+            --y;
             break;
         case RIGHT:
-            ++x2;
+            ++x;
             break;
         case DOWN_RIGHT:
-            ++x2;
-            ++y2;
+            ++x;
+            ++y;
             break;
         case DOWN:
-            ++y2;
+            ++y;
             break;
         case DOWN_LEFT:
-            --x2;
-            ++y2;
+            --x;
+            ++y;
             break;
         case LEFT:
-            --x2;
+            --x;
             break;
         case UP_LEFT:
-            --x2;
-            --y2;
+            --x;
+            --y;
             break;
     }
-    if (x2 < 0 || x2 >= width || y2 < 0 || y2 >= height) {
-        std::tuple<dim_t, dim_t> ret(x, y);
-        return ret;
+    if (x < 0 || x >= width || y < 0 || y >= height) {
+        return position;
     }
-    std::tuple<dim_t, dim_t> ret(x2, y2);
-    return ret;
+    return to_index(x, y);
 }
 
-Move Board::move(dim_t original_x, dim_t original_y, Direction dir) const {
+Move Board::move(idx_t original, Direction dir) const {
     Move ret{};
     ret.direction = dir;
 
-    dim_t x = original_x;
-    dim_t y = original_y;
+    idx_t position = original;
 
     bool finish = false;
     while (!finish) {
-        dim_t next_x, next_y;
-        std::tie(next_x, next_y) = move_single(x, y, dir);
-        CellType next_cell = get_cell(next_x, next_y);
+        idx_t next = move_single(position, dir);
+        CellType next_cell = get_cell(next);
 
         switch (next_cell) {
             case CONCRETE:
-                ret.to_x = x;
-                ret.to_y = y;
+                ret.to = position;
                 return ret;
 
             case MINE:
                 ret.diamonds.clear();
-                ret.to_x = original_x;
-                ret.to_y = original_y;
+                ret.to = original;
                 return ret;
 
             case DIAMOND:
-                ret.diamonds.insert(to_index(next_x, next_y));
+                ret.diamonds.insert(next);
             case SPACE:
-                x = next_x;
-                y = next_y;
+                position = next;
                 break;
 
             case HOLE:
-                ret.to_x = next_x;
-                ret.to_y = next_y;
+                ret.to = next;
                 return ret;
 
             default:
@@ -158,7 +150,7 @@ Board *BoardParser::parse(std::istream &input) {
                     break;
 
                 case '.':
-                    board->set_ball(x, y);
+                    board->set_ball(board->to_index(x, y));
 
                 case ' ':
                     type = SPACE;
@@ -169,7 +161,7 @@ Board *BoardParser::parse(std::istream &input) {
                     continue;
             }
 
-            board->set_cell(x, y, type);
+            board->set_cell(board->to_index(x, y), type);
         }
     }
 

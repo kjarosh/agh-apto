@@ -35,46 +35,49 @@ Direction all_directions[] = {
 };
 
 struct Move {
-    dim_t to_x, to_y;
+    idx_t to;
     std::set<idx_t> diamonds;
     Direction direction;
 
-    inline bool position_equals(dim_t from_x, dim_t from_y) {
-        return from_x == to_x && from_y == to_y;
+    inline bool position_equals(idx_t position) {
+        return to == position;
     }
 };
 
 class Board {
 private:
     dim_t width, height;
+    idx_t size;
 
     size_t max_moves;
 
-    CellType **board;
+    CellType *board;
 
     std::set<idx_t> diamond_positions;
 
-    dim_t ball_x{0}, ball_y{0};
+    idx_t ball_position;
 
 public:
     Board(dim_t width, dim_t height, size_t max_moves);
 
-    void set_cell(dim_t x, dim_t y, CellType type);
+    virtual ~Board();
 
-    void set_ball(dim_t x, dim_t y);
+    void set_cell(idx_t position, CellType type);
 
-    CellType get_cell(dim_t x, dim_t y) const;
+    void set_ball(idx_t position);
+
+    CellType get_cell(idx_t position) const;
+
+    inline idx_t get_size() const {
+        return size;
+    }
 
     inline size_t get_max_moves() const {
         return max_moves;
     }
 
-    inline dim_t get_ball_x() const {
-        return ball_x;
-    }
-
-    inline dim_t get_ball_y() const {
-        return ball_y;
+    inline idx_t get_ball_index() const {
+        return ball_position;
     }
 
     inline std::set<idx_t> get_diamond_positions() const {
@@ -97,9 +100,9 @@ public:
         return std::make_tuple(ix % width, ix / width);
     }
 
-    std::tuple<dim_t, dim_t> move_single(dim_t x, dim_t y, Direction dir) const;
+    idx_t move_single(idx_t position, Direction dir) const;
 
-    Move move(dim_t x, dim_t y, Direction dir) const;
+    Move move(idx_t position, Direction dir) const;
 };
 
 class BoardParser {
