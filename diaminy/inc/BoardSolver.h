@@ -73,6 +73,8 @@ private:
 
     void fill_graph(idx_t position, std::set<idx_t> &filled);
 
+    void fill_transpose();
+
     solution_t search0(std::vector<std::unordered_set<GameState>> &computed_states, const GameState &state);
 
 public:

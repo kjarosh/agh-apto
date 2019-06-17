@@ -11,6 +11,8 @@ BoardGraph::BoardGraph(Board *board) :
         adjacencyTranspose(board->get_size()) {
     std::set<idx_t> filled = {};
     fill_graph(board->get_ball_index(), filled);
+
+    fill_transpose();
 }
 
 BoardGraph::~BoardGraph() {
@@ -33,6 +35,15 @@ void BoardGraph::fill_graph(idx_t ix, std::set<idx_t> &filled) {
 
         if (filled.find(next_ix) == filled.end()) {
             fill_graph(move.to, filled);
+        }
+    }
+}
+
+void BoardGraph::fill_transpose() {
+    for (idx_t ix = 0; ix < adjacency.size(); ++ix) {
+        for (auto &move : adjacency[ix]) {
+            idx_t ix_to = move.to;
+            adjacencyTranspose[ix_to].push_back(ix);
         }
     }
 }
