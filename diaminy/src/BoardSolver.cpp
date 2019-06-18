@@ -1,5 +1,7 @@
 #include "BoardSolver.h"
 
+#include "exceptions.h"
+
 solution_t BoardSolver::solve(Board *board) {
     BoardGraph graph(board);
 #ifdef DEBUG
@@ -13,7 +15,8 @@ BoardGraph::BoardGraph(Board *board) :
         adjacency(board->get_size()),
         adjacency_transpose(board->get_size()),
         scc_leader_mapping(board->get_size()),
-        scc_adjacency(board->get_size()) {
+        scc_adjacency(board->get_size()),
+        scc_diamonds(board->get_size()) {
     std::set<idx_t> filled = {};
     fill_graph(board->get_ball_index(), filled);
     fill_transpose();
@@ -58,7 +61,7 @@ void BoardGraph::fill_transpose() {
     }
 }
 
-void BoardGraph::print() {
+void BoardGraph::print() const {
     size_t i = 0;
     for (auto &a : adjacency) {
         size_t x, y;
@@ -80,6 +83,18 @@ void BoardGraph::print() {
     }
     std::cout << '\n';
 
+    std::cout << "SCC diamonds:" << '\n';
+    size_t j = 0;
+    for (auto &d : scc_diamonds) {
+        if (scc_leaders.find(j) == scc_leaders.end()) {
+            ++j;
+            continue;
+        }
+        size_t x, y;
+        std::tie(x, y) = board->from_index(j++);
+        std::cout << x << ',' << y << ": " << d.size() << '\n';
+    }
+
     std::cout << "SCC adjacency:" << '\n';
     size_t i2 = 0;
     for (auto &neighs : scc_adjacency) {
@@ -91,10 +106,10 @@ void BoardGraph::print() {
         size_t x, y;
         std::tie(x, y) = board->from_index(i2++);
         std::cout << x << ',' << y << ": [";
-        for (idx_t neigh : neighs) {
+        for (const SCCMove &move : neighs) {
             size_t x2, y2;
-            std::tie(x2, y2) = board->from_index(neigh);
-            std::cout << x2 << ',' << y2 << "; ";
+            std::tie(x2, y2) = board->from_index(move.to_leader);
+            std::cout << x2 << ',' << y2 << '/' << move.diamonds.size() << "; ";
         }
         std::cout << ']' << '\n';
     }
@@ -188,15 +203,57 @@ void BoardGraph::dfs_visit_transpose(idx_t leader, idx_t ix, std::set<idx_t> &vi
 }
 
 void BoardGraph::build_scc_graph() {
-    size_t i = 0;
+    size_t ix = 0;
     for (auto &neighbors : adjacency) {
-        idx_t ix_leader = scc_leader_mapping[(i++)];
+        idx_t ix_leader = scc_leader_mapping[ix++];
 
         for (auto &move : neighbors) {
             idx_t ix_to_leader = scc_leader_mapping[move.to];
 
-            if (ix_leader != ix_to_leader) {
-                scc_adjacency[ix_leader].insert(ix_to_leader);
+            if (ix_leader == ix_to_leader) {
+                // internal diamonds
+                for (auto &diamond : move.diamonds) {
+                    scc_diamonds[ix_leader].insert(diamond);
+                }
+
+                continue;
+            }
+
+            SCCMove current_move = SCCMove::create(ix_to_leader, move.diamonds);
+
+            std::list<SCCMove> &scc_moves = scc_adjacency[ix_leader];
+            auto begin = scc_moves.begin();
+            auto end = scc_moves.end();
+            bool insert = true;
+            for (auto i = begin; i != end; ++i) {
+                const SCCMove &scc_move = *i;
+                if (scc_move.to_leader != ix_to_leader) continue;
+
+                if (scc_move.diamonds.empty()) {
+                    if (!current_move.diamonds.empty()) {
+                        // remove all moves without diamonds because we have diamonds
+                        scc_moves.erase(i);
+                    } else {
+                        // if there's another move without diamonds it means that
+                        // all subsequent moves don't have diamonds
+                        scc_moves.insert(i, current_move);
+                        insert = false;
+                        break;
+                    }
+                } else {
+                    if (!current_move.diamonds.empty()) {
+                        // two moves with diamonds
+                        throw no_solution_exception();
+                    } else {
+                        // ignore, there's aready a move with diamonds
+                        insert = false;
+                        break;
+                    }
+                }
+            }
+
+            if (insert) {
+                scc_moves.insert(end, current_move);
             }
         }
     }

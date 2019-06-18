@@ -18,7 +18,9 @@ private:
 
     std::vector<idx_t> scc_leader_mapping;
 
-    std::vector<std::set<idx_t>> scc_adjacency;
+    std::vector<std::list<SCCMove>> scc_adjacency;
+
+    std::vector<std::set<idx_t>> scc_diamonds;
 
 private:
     void fill_graph(idx_t position, std::set<idx_t> &filled);
@@ -29,7 +31,9 @@ private:
 
     void dfs_visit_transpose(idx_t leader, idx_t ix, std::set<idx_t> &visiting);
 
-    void build_scc(std::vector<idx_t> &vector);
+    void build_scc(std::vector<idx_t> &visited_stack);
+
+    void build_scc_graph();
 
     solution_t search0(std::vector<std::unordered_set<GameState>> &computed_states, const GameState &state);
 
@@ -38,11 +42,9 @@ public:
 
     virtual ~BoardGraph();
 
-    void print();
+    void print() const;
 
     solution_t search();
-
-    void build_scc_graph();
 };
 
 class BoardSolver {

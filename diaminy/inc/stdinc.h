@@ -7,5 +7,7 @@
 #include <set>
 #include <algorithm>
 #include <unordered_set>
+#include <forward_list>
+#include <list>
 
 #endif

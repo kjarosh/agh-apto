@@ -5,6 +5,7 @@
 #include "Board.h"
 #include "BoardSolver.h"
 #include "GameState.h"
+#include "exceptions.h"
 
 // code includes
 #include "Board.cpp"

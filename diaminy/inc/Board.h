@@ -34,6 +34,15 @@ Direction all_directions[] = {
         UP_LEFT,
 };
 
+struct SCCMove {
+    const idx_t to_leader;
+    std::set<idx_t> diamonds;
+
+    inline static SCCMove create(idx_t to_leader, std::set<idx_t> &diamonds) {
+        return {to_leader, diamonds};
+    }
+};
+
 struct Move {
     idx_t to;
     std::set<idx_t> diamonds;
