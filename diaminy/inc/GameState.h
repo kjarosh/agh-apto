@@ -25,6 +25,10 @@ struct GameState {
         return {board, {}, {}, board->get_ball_index()};
     }
 
+    inline static GameState from(const Board *board, const idx_t from) {
+        return {board, {}, {}, from};
+    }
+
     inline bool is_finished() const {
         return board->get_diamond_positions() == gathered_diamonds;
     }

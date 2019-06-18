@@ -7,7 +7,7 @@ solution_t BoardSolver::solve(Board *board) {
 #ifdef DEBUG
     graph.print();
 #endif
-    return graph.search();
+    return graph.solve_using_scc();
 }
 
 BoardGraph::BoardGraph(Board *board) :
@@ -90,9 +90,8 @@ void BoardGraph::print() const {
             ++j;
             continue;
         }
-        size_t x, y;
-        std::tie(x, y) = board->from_index(j++);
-        std::cout << x << ',' << y << ": " << d.size() << '\n';
+
+        std::cout << j++ << ": " << d.size() << '\n';
     }
 
     std::cout << "SCC adjacency:" << '\n';
@@ -103,13 +102,9 @@ void BoardGraph::print() const {
             continue;
         }
 
-        size_t x, y;
-        std::tie(x, y) = board->from_index(i2++);
-        std::cout << x << ',' << y << ": [";
+        std::cout << i2++ << ": [";
         for (const SCCMove &move : neighs) {
-            size_t x2, y2;
-            std::tie(x2, y2) = board->from_index(move.to_leader);
-            std::cout << x2 << ',' << y2 << '/' << move.diamonds.size() << "; ";
+            std::cout << move.to_leader << '/' << move.diamonds.size() << "; ";
         }
         std::cout << ']' << '\n';
     }
@@ -257,4 +252,184 @@ void BoardGraph::build_scc_graph() {
             }
         }
     }
+}
+
+solution_t BoardGraph::solve_using_scc() {
+    std::vector<idx_t> scc_leaders_path;
+    const idx_t first_leader = *scc_leaders.rbegin();
+    std::set<idx_t> gathered_diamonds = scc_find_path(scc_leaders_path, first_leader);
+    if (gathered_diamonds != board->get_diamond_positions()) {
+        // it's impossible to traverse scc-s and gather all diamonds
+        throw no_solution_exception();
+    }
+
+#ifdef DEBUG
+    std::cout << "Required SCC path:\n";
+    for (auto &ix:scc_leaders_path) {
+        std::cout << ix << " ";
+    }
+    std::cout << '\n';
+#endif
+
+    solution_t final_solution;
+    idx_t current_leader = first_leader;
+    idx_t current_position = board->get_ball_index();
+    for (auto &next_leader : scc_leaders_path) {
+        if (next_leader == current_leader) continue;
+        SCCSolution partial_solution = search_within_scc(current_position, current_leader, next_leader);
+        final_solution.insert(final_solution.end(), partial_solution.moves.begin(), partial_solution.moves.end());
+
+        current_leader = next_leader;
+        current_position = partial_solution.final_position;
+    }
+
+    SCCSolution partial_solution = search_final_within_scc(current_position, current_leader);
+    final_solution.insert(final_solution.end(), partial_solution.moves.begin(), partial_solution.moves.end());
+
+    return final_solution;
+}
+
+std::set<idx_t> BoardGraph::scc_find_path(std::vector<idx_t> &scc_leaders_path, idx_t leader) {
+    std::set<idx_t> diamonds = scc_diamonds[leader];
+
+    scc_leaders_path.push_back(leader);
+    std::list<SCCMove> &neighbors = scc_adjacency[leader];
+    if (neighbors.empty()) {
+        return diamonds;
+    }
+
+    bool has_path_with_diamonds = false;
+    idx_t path_with_diamonds = 0;
+    for (auto &neighbor : neighbors) {
+        if (!neighbor.diamonds.empty()) {
+            if (has_path_with_diamonds) {
+                // two paths with diamonds
+                throw no_solution_exception();
+            }
+
+            has_path_with_diamonds = true;
+            path_with_diamonds = neighbor.to_leader;
+        }
+    }
+
+    if (has_path_with_diamonds) {
+        // the only one path with diamonds
+        scc_leaders_path.push_back(path_with_diamonds);
+        std::set<idx_t> diamonds_rest = scc_find_path(scc_leaders_path, path_with_diamonds);
+        diamonds.insert(diamonds_rest.begin(), diamonds_rest.end());
+        return diamonds;
+    } else {
+        // doesn't have a path with diamonds
+
+        std::vector<idx_t> scc_leaders_path_rest = scc_leaders_path;
+        std::set<idx_t> diamonds_rest = {};
+
+        for (auto &neighbor : neighbors) {
+            std::vector<idx_t> scc_leaders_path_rest2 = scc_leaders_path;
+            std::set<idx_t> diamonds_rest2 = scc_find_path(scc_leaders_path_rest2, neighbor.to_leader);
+
+            if (diamonds_rest.empty()) {
+                // everything's better than nothing
+                diamonds_rest = diamonds_rest2;
+                scc_leaders_path_rest = scc_leaders_path_rest2;
+                continue;
+            }
+
+            if (diamonds_rest2.empty()) {
+                // nothing's not better than anything
+                continue;
+            }
+
+            // this checking is not the fastest one but it doesn't need to be I hope
+            bool rest2_contains_rest = std::all_of(
+                    diamonds_rest.begin(), diamonds_rest.end(),
+                    [&diamonds_rest2](idx_t ix) { return diamonds_rest2.find(ix) != diamonds_rest2.end(); });
+            bool rest_contains_rest2 = std::all_of(
+                    diamonds_rest2.begin(), diamonds_rest2.end(),
+                    [&diamonds_rest](idx_t ix) { return diamonds_rest.find(ix) != diamonds_rest.end(); });
+
+            if (rest2_contains_rest && !rest_contains_rest2) {
+                diamonds_rest = diamonds_rest2;
+                scc_leaders_path_rest = scc_leaders_path_rest2;
+            } else if (rest_contains_rest2 && !rest2_contains_rest) {
+                // do nothing
+            } else {
+                throw no_solution_exception();
+            }
+        }
+
+        scc_leaders_path = scc_leaders_path_rest;
+        diamonds.insert(diamonds_rest.begin(), diamonds_rest.end());
+        return diamonds;
+    }
+}
+
+SCCSolution BoardGraph::search_within_scc(idx_t from, idx_t leader, idx_t target_leader) {
+    std::vector<std::unordered_set<GameState>> computed_states(board->get_width() * board->get_height());
+    GameState initial = GameState::from(board, from);
+    return search_within_scc0(computed_states, initial, leader, target_leader);
+}
+
+SCCSolution BoardGraph::search_final_within_scc(idx_t from, idx_t leader) {
+    std::vector<std::unordered_set<GameState>> computed_states(board->get_width() * board->get_height());
+    GameState initial = GameState::from(board, from);
+    return search_within_scc0(computed_states, initial, leader, 0);
+}
+
+SCCSolution BoardGraph::search_within_scc0(
+        std::vector<std::unordered_set<GameState>> &computed_states,
+        const GameState &state, idx_t leader, idx_t target_leader) {
+    idx_t ix = state.position;
+
+    if (target_leader == 0 && state.gathered_diamonds == scc_diamonds[leader]) {
+        return {state.moves, state.position};
+    }
+
+    if (target_leader != 0 && scc_leader_mapping[state.position] == target_leader) {
+        return {state.moves, state.position};
+    }
+
+    if (scc_leader_mapping[state.position] != leader) {
+        throw no_solution_exception();
+    }
+
+    if (state.moves.size() >= board->get_max_moves()) {
+        throw no_solution_exception();
+    }
+
+    /*std::unordered_set<GameState> &current_computed_states = computed_states[ix];
+    for (auto &st : current_computed_states) {
+        if (st.compare(state) > 0) {
+            // there was already a better solution
+            throw no_solution_exception();
+        }
+    }
+
+    computed_states[ix].insert(state);*/
+
+    std::vector<SCCSolution> solutions;
+
+    for (auto &move : adjacency[ix]) {
+        try {
+            SCCSolution ret = search_within_scc0(computed_states, state.next(move), leader, target_leader);
+            solutions.push_back(ret);
+        } catch (no_solution_exception &e) {
+            continue;
+        }
+    }
+
+    SCCSolution best = {};
+    size_t best_size = SIZE_MAX;
+    for (auto &s: solutions) {
+        if (s.moves.size() < best_size) {
+            best_size = s.moves.size();
+            best = s;
+        }
+    }
+
+    if (best.moves.empty()) {
+        throw no_solution_exception();
+    }
+
+    return best;
 }
