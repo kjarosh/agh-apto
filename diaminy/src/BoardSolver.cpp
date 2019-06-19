@@ -19,13 +19,13 @@ BoardGraph::BoardGraph(Board *board) :
         scc_diamonds(board->get_size()) {
     std::set<idx_t> filled = {};
     fill_graph(board->get_ball_index(), filled);
-    fill_transpose();
+    /*fill_transpose();
 
     std::set<idx_t> visiting;
     std::vector<idx_t> visited_stack;
     dfs_visit(board->get_ball_index(), visiting, visited_stack);
     build_scc(visited_stack);
-    build_scc_graph();
+    build_scc_graph();*/
 }
 
 BoardGraph::~BoardGraph() {
