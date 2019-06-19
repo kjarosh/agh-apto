@@ -13,7 +13,7 @@ struct GameState {
 
         std::set<idx_t> next_diamonds = gathered_diamonds;
         std::copy(move.diamonds.begin(), move.diamonds.end(),
-                  std::inserter(next_diamonds, next_diamonds.end()));
+                  std::inserter(next_diamonds, next_diamonds.begin()));
 
         return (GameState) {
                 board,
@@ -55,18 +55,5 @@ struct GameState {
         return i1 == e1 && i2 == e2;
     }
 };
-
-namespace std {
-    template<>
-    struct hash<GameState> {
-        std::size_t operator()(const GameState &g) const {
-            std::size_t seed = g.moves.size();
-            for (auto &i : g.moves) {
-                seed ^= i + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-            }
-            return seed;
-        }
-    };
-}
 
 #endif
