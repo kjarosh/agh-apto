@@ -454,8 +454,7 @@ solution_t BoardGraph::bfs() {
 
         bool ignore = false;
         for (auto &computed_state : computed_states[current.position]) {
-            if (computed_state.compare(current) > 0) {
-                // current state is worse, so ignore it
+            if (current.is_worse_than(computed_state)) {
                 ignore = true;
                 continue;
             }

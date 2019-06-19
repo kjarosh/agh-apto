@@ -3,23 +3,29 @@
 
 struct GameState {
     const Board *board;
-    std::set<idx_t> gathered_diamonds;
-    std::vector<Direction> moves;
-    idx_t position;
+    const std::set<idx_t> gathered_diamonds;
+    const std::vector<Direction> moves;
+    const idx_t position;
 
     inline GameState next(Move &move) const {
-        GameState ret;
-        ret.gathered_diamonds = gathered_diamonds;
+        std::vector<Direction> next_moves = moves;
+        next_moves.push_back(move.direction);
+
+        std::set<idx_t> next_diamonds = gathered_diamonds;
         std::copy(move.diamonds.begin(), move.diamonds.end(),
-                  std::inserter(ret.gathered_diamonds, ret.gathered_diamonds.end()));
-        ret.moves = moves;
-        ret.moves.push_back(move.direction);
-        ret.position = move.to;
-        ret.board = board;
-        return ret;
+                  std::inserter(next_diamonds, next_diamonds.end()));
+
+        return (GameState) {
+                board,
+                std::move(next_diamonds),
+                std::move(next_moves),
+                move.to
+        };
     }
 
     int compare(const GameState &other) const;
+
+    bool is_worse_than(const GameState &state) const;
 
     inline static GameState initial(const Board *board) {
         return {board, {}, {}, board->get_ball_index()};
