@@ -448,6 +448,10 @@ solution_t BoardGraph::bfs() {
             return current.moves;
         }
 
+        if (current.moves.size() >= board->get_max_moves()) {
+            continue;
+        }
+
         bool ignore = false;
         for (auto &computed_state : computed_states[current.position]) {
             if (computed_state.compare(current) > 0) {

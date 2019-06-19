@@ -89,7 +89,7 @@ public:
         return ball_position;
     }
 
-    inline std::set<idx_t> get_diamond_positions() const {
+    inline const std::set<idx_t> get_diamond_positions() const {
         return diamond_positions;
     }
 
