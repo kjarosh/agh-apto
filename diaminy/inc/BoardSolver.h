@@ -40,7 +40,7 @@ private:
 
     void build_scc_graph();
 
-    solution_t search0(std::vector<std::unordered_set<GameState>> &computed_states, const GameState &state);
+    solution_t search0(std::vector<std::vector<GameState>> &computed_states, const GameState &state);
 
     std::set<idx_t> scc_find_path(std::vector<idx_t> &vector, idx_t leader);
 
@@ -56,7 +56,7 @@ private:
      * @return found best solution
      */
     SCCSolution search_within_scc0(
-            std::vector<std::unordered_set<GameState>> &computed_states,
+            std::vector<std::vector<GameState>> &computed_states,
             const GameState &state, idx_t leader, idx_t target_leader);
 
 public:
@@ -69,6 +69,8 @@ public:
     solution_t search();
 
     solution_t solve_using_scc();
+
+    solution_t bfs();
 };
 
 class BoardSolver {

@@ -7,7 +7,7 @@ solution_t BoardSolver::solve(Board *board) {
 #ifdef DEBUG
     graph.print();
 #endif
-    return graph.solve_using_scc();
+    return graph.bfs();
 }
 
 BoardGraph::BoardGraph(Board *board) :
@@ -112,12 +112,12 @@ void BoardGraph::print() const {
 }
 
 solution_t BoardGraph::search() {
-    std::vector<std::unordered_set<GameState>> computed_states(board->get_width() * board->get_height());
+    std::vector<std::vector<GameState>> computed_states(board->get_width() * board->get_height());
     GameState initial = GameState::initial(board);
     return search0(computed_states, initial);
 }
 
-solution_t BoardGraph::search0(std::vector<std::unordered_set<GameState>> &computed_states, const GameState &state) {
+solution_t BoardGraph::search0(std::vector<std::vector<GameState>> &computed_states, const GameState &state) {
     idx_t ix = state.position;
 
     if (state.is_finished()) {
@@ -128,7 +128,7 @@ solution_t BoardGraph::search0(std::vector<std::unordered_set<GameState>> &compu
         return {};
     }
 
-    std::unordered_set<GameState> &current_computed_states = computed_states[ix];
+    std::vector<GameState> &current_computed_states = computed_states[ix];
     for (auto &st : current_computed_states) {
         if (st.compare(state) > 0) {
             // there was already a better solution
@@ -136,7 +136,7 @@ solution_t BoardGraph::search0(std::vector<std::unordered_set<GameState>> &compu
         }
     }
 
-    computed_states[ix].insert(state);
+    computed_states[ix].push_back(state);
 
     std::vector<solution_t> solutions;
 
@@ -365,19 +365,19 @@ std::set<idx_t> BoardGraph::scc_find_path(std::vector<idx_t> &scc_leaders_path, 
 }
 
 SCCSolution BoardGraph::search_within_scc(idx_t from, idx_t leader, idx_t target_leader) {
-    std::vector<std::unordered_set<GameState>> computed_states(board->get_width() * board->get_height());
+    std::vector<std::vector<GameState>> computed_states(board->get_width() * board->get_height());
     GameState initial = GameState::from(board, from);
     return search_within_scc0(computed_states, initial, leader, target_leader);
 }
 
 SCCSolution BoardGraph::search_final_within_scc(idx_t from, idx_t leader) {
-    std::vector<std::unordered_set<GameState>> computed_states(board->get_width() * board->get_height());
+    std::vector<std::vector<GameState>> computed_states(board->get_width() * board->get_height());
     GameState initial = GameState::from(board, from);
     return search_within_scc0(computed_states, initial, leader, 0);
 }
 
 SCCSolution BoardGraph::search_within_scc0(
-        std::vector<std::unordered_set<GameState>> &computed_states,
+        std::vector<std::vector<GameState>> &computed_states,
         const GameState &state, idx_t leader, idx_t target_leader) {
     idx_t ix = state.position;
 
@@ -397,7 +397,7 @@ SCCSolution BoardGraph::search_within_scc0(
         throw no_solution_exception();
     }
 
-    /*std::unordered_set<GameState> &current_computed_states = computed_states[ix];
+    std::vector<GameState> &current_computed_states = computed_states[ix];
     for (auto &st : current_computed_states) {
         if (st.compare(state) > 0) {
             // there was already a better solution
@@ -405,7 +405,7 @@ SCCSolution BoardGraph::search_within_scc0(
         }
     }
 
-    computed_states[ix].insert(state);*/
+    computed_states[ix].push_back(state);
 
     std::vector<SCCSolution> solutions;
 
@@ -432,4 +432,39 @@ SCCSolution BoardGraph::search_within_scc0(
     }
 
     return best;
+}
+
+solution_t BoardGraph::bfs() {
+    std::queue<GameState> state_queue;
+    std::vector<std::vector<GameState>> computed_states(board->get_size());
+
+    state_queue.push(GameState::initial(board));
+
+    while (!state_queue.empty()) {
+        const GameState current = state_queue.front();
+        state_queue.pop();
+
+        if (current.is_finished()) {
+            return current.moves;
+        }
+
+        bool ignore = false;
+        for (auto &computed_state : computed_states[current.position]) {
+            if (computed_state.compare(current) > 0) {
+                // current state is worse, so ignore it
+                ignore = true;
+                continue;
+            }
+        }
+
+        if (ignore) continue;
+
+        computed_states[current.position].push_back(current);
+
+        for (auto &move : adjacency[current.position]) {
+            state_queue.push(current.next(move));
+        }
+    }
+
+    throw no_solution_exception();
 }

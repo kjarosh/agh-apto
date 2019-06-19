@@ -9,5 +9,6 @@
 #include <unordered_set>
 #include <forward_list>
 #include <list>
+#include <queue>
 
 #endif
