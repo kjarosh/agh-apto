@@ -1,0 +1,15 @@
+\begin{tikzpicture}[x=1.8cm,y=-1.8cm,minimum size=1cm]
+    \node[draw, circle, double] (a) at (2,0) {A};
+    \node[draw, circle] (b) at (1,1) {B};
+    \node[draw, circle] (c) at (3,1) {C};
+
+    \node[draw, cloud, cloud puffs=9] (e) at (3.5,0) {graph};
+
+    \draw[->, >=latex, red] (a) -- (b);
+    \draw[->, >=latex] (b)
+    edge [decoration={snake,post length=5pt}, decorate, red]
+    node [below] {long path} (c);
+
+    \draw[->, >=latex] (a) -- (c);
+    \draw[->, >=latex, red] (c) -- (e);
+\end{tikzpicture}
