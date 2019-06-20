@@ -4,9 +4,6 @@
 
 solution_t BoardSolver::solve(Board *board) {
     BoardGraph graph(board);
-#ifdef DEBUG
-    graph.print();
-#endif
     return graph.bfs();
 }
 
@@ -374,7 +371,7 @@ std::vector<SCCSolution> BoardGraph::search_within_scc0(
         const GameState current = state_queue.front();
         state_queue.pop();
 
-        if (current.gathered_diamonds == scc_diamonds[leader]) {
+        if (current.get_gathered_diamonds() == scc_diamonds[leader]) {
             if (target_leader == 0 || scc_leader_mapping[current.position] == target_leader) {
                 if (solved_targets.find(current.position) == solved_targets.end()) {
                     solved_targets.insert(current.position);
@@ -423,7 +420,7 @@ solution_t BoardGraph::bfs() {
         const GameState current = state_queue.top();
         state_queue.pop();
 
-        if (board->get_diamond_positions() == current.gathered_diamonds) {
+        if (board->get_diamond_positions() == current.get_gathered_diamonds()) {
             return current.moves;
         }
 

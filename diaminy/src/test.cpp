@@ -9,15 +9,19 @@ void assert_false(bool b, const char *message) {
     assert_true(!b, message);
 }
 
+std::shared_ptr<std::set<idx_t>> make_diamonds(std::initializer_list<idx_t> i) {
+    return std::make_shared<std::set<idx_t>>(std::set<idx_t>(i));
+}
+
 // two identical states
 void test_gamestate1() {
     GameState first = {
-            {1, 2, 3},
+            make_diamonds({1, 2, 3}),
             {UP, UP},
             0
     };
     GameState second = {
-            {1, 2, 3},
+            make_diamonds({1, 2, 3}),
             {UP, UP},
             0
     };
@@ -29,12 +33,12 @@ void test_gamestate1() {
 // differ in diamonds
 void test_gamestate2() {
     GameState first = {
-            {1, 2},
+            make_diamonds({1, 2}),
             {UP, UP},
             0
     };
     GameState second = {
-            {1, 2, 3},
+            make_diamonds({1, 2, 3}),
             {UP, UP},
             0
     };
@@ -46,12 +50,12 @@ void test_gamestate2() {
 // differ in diamonds and length
 void test_gamestate3() {
     GameState first = {
-            {1, 2},
+            make_diamonds({1, 2}),
             {UP, UP, DOWN},
             0
     };
     GameState second = {
-            {1, 2, 3},
+            make_diamonds({1, 2, 3}),
             {UP, UP},
             0
     };
@@ -63,12 +67,12 @@ void test_gamestate3() {
 // differ in diamonds and length 2
 void test_gamestate4() {
     GameState first = {
-            {1, 2},
+            make_diamonds({1, 2}),
             {UP},
             0
     };
     GameState second = {
-            {1, 2, 3},
+            make_diamonds({1, 2, 3}),
             {UP, UP},
             0
     };
@@ -80,12 +84,12 @@ void test_gamestate4() {
 // differ in length
 void test_gamestate5() {
     GameState first = {
-            {1, 2, 3},
+            make_diamonds({1, 2, 3}),
             {UP, DOWN, LEFT},
             0
     };
     GameState second = {
-            {1, 2, 3},
+            make_diamonds({1, 2, 3}),
             {UP, UP},
             0
     };
@@ -97,12 +101,12 @@ void test_gamestate5() {
 // differ in diamonds
 void test_gamestate6() {
     GameState first = {
-            {1, 2, 4},
+            make_diamonds({1, 2, 4}),
             {UP, DOWN},
             0
     };
     GameState second = {
-            {1, 2, 3},
+            make_diamonds({1, 2, 3}),
             {UP, UP},
             0
     };
@@ -114,12 +118,12 @@ void test_gamestate6() {
 // differ in path
 void test_gamestate7() {
     GameState first = {
-            {1, 2, 3},
+            make_diamonds({1, 2, 3}),
             {UP, DOWN},
             0
     };
     GameState second = {
-            {1, 2, 3},
+            make_diamonds({1, 2, 3}),
             {UP, UP},
             0
     };

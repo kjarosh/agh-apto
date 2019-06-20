@@ -1,8 +1,8 @@
 #include "GameState.h"
 
 bool GameState::is_worse_than(const GameState &other) const {
-    const std::set<idx_t> &mine = gathered_diamonds;
-    const std::set<idx_t> &theirs = other.gathered_diamonds;
+    const std::set<idx_t> &mine = get_gathered_diamonds();
+    const std::set<idx_t> &theirs = other.get_gathered_diamonds();
     auto mine_end = mine.end();
     auto theirs_end = theirs.end();
     bool i_have_more = false;

@@ -2,17 +2,27 @@
 #define DIAMINY_GAMESTATE_H
 
 struct GameState {
-    std::set<idx_t> gathered_diamonds;
+    std::shared_ptr<std::set<idx_t>> gathered_diamonds;
     std::vector<Direction> moves;
     idx_t position;
+
+    inline std::set<idx_t> &get_gathered_diamonds() const {
+        return *gathered_diamonds;
+    }
 
     inline GameState next(Move &move) const {
         std::vector<Direction> next_moves = moves;
         next_moves.push_back(move.direction);
 
-        std::set<idx_t> next_diamonds = gathered_diamonds;
-        std::copy(move.diamonds.begin(), move.diamonds.end(),
-                  std::inserter(next_diamonds, next_diamonds.begin()));
+        std::shared_ptr<std::set<idx_t>> next_diamonds = gathered_diamonds;
+        if (move.diamonds.empty()) {
+            next_diamonds = gathered_diamonds;
+        } else {
+            std::set<idx_t> gathered_diamonds_copy = *gathered_diamonds;
+            std::copy(move.diamonds.begin(), move.diamonds.end(),
+                      std::inserter(gathered_diamonds_copy, gathered_diamonds_copy.begin()));
+            next_diamonds = std::make_shared<std::set<idx_t>>(std::move(gathered_diamonds_copy));
+        }
 
         return (GameState) {
                 std::move(next_diamonds),
@@ -24,11 +34,11 @@ struct GameState {
     bool is_worse_than(const GameState &state) const;
 
     inline static GameState initial(const Board *board) {
-        return {{}, {}, board->get_ball_index()};
+        return {std::make_shared<std::set<idx_t>>(), {}, board->get_ball_index()};
     }
 
     inline static GameState from(const idx_t from) {
-        return {{}, {}, from};
+        return {std::make_shared<std::set<idx_t>>(), {}, from};
     }
 
     inline bool operator==(const GameState &g) const {
@@ -50,7 +60,7 @@ struct GameState {
 
 class GameStatePriority {
     inline double priority(const GameState &g) {
-        return g.gathered_diamonds.size();
+        return g.get_gathered_diamonds().size();
     }
 
 public:

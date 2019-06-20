@@ -8,5 +8,6 @@
 #include <algorithm>
 #include <list>
 #include <queue>
+#include <memory>
 
 #endif
