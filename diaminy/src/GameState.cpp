@@ -59,9 +59,5 @@ bool GameState::is_worse_than(const GameState &other) const {
         return other_moves_size < moves_size;
     }
 
-    if (!i_have_more && they_have_more && other_moves_size <= moves_size) {
-        return true;
-    }
-
-    return false;
+    return !i_have_more && they_have_more && other_moves_size <= moves_size;
 }

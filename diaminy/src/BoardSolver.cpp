@@ -2,24 +2,16 @@
 
 #include "exceptions.h"
 
-solution_t BoardSolver::solve(Board *board) {
+solution_t BoardSolver::solve(const Board *const board) {
     BoardGraph graph(board);
     return graph.bfs();
 }
 
-BoardGraph::BoardGraph(Board *board) :
+BoardGraph::BoardGraph(Board const *board) :
         board(board),
-        adjacency(board->get_size()),
-        adjacency_transpose(board->get_size()),
-        scc_leader_mapping(board->get_size()),
-        scc_adjacency(board->get_size()),
-        scc_diamonds(board->get_size()) {
+        adjacency(board->get_size()) {
     std::set<idx_t> filled = {};
     fill_graph(board->get_ball_index(), filled);
-}
-
-BoardGraph::~BoardGraph() {
-
 }
 
 void BoardGraph::fill_graph(idx_t ix, std::set<idx_t> &filled) {
@@ -28,7 +20,7 @@ void BoardGraph::fill_graph(idx_t ix, std::set<idx_t> &filled) {
     for (auto &dir : all_directions) {
         Move move = board->move(ix, dir);
 
-        if (move.position_equals(ix)) {
+        if (move.to == ix) {
             // no move
             continue;
         }
@@ -57,9 +49,9 @@ void BoardGraph::print() const {
     }
 }
 
-solution_t BoardGraph::bfs() {
+solution_t BoardGraph::bfs() const {
     std::priority_queue<GameState, std::vector<GameState>, GameStatePriority> state_queue;
-    std::vector<std::vector<GameState>> computed_states(board->get_size());
+    std::vector<std::list<GameState>> computed_states(board->get_size());
 
     state_queue.push(GameState::initial(board));
 
@@ -76,17 +68,23 @@ solution_t BoardGraph::bfs() {
         }
 
         bool ignore = false;
-        auto &curr_computed_states = computed_states[current.position];
-        for (auto i = curr_computed_states.rbegin(), end = curr_computed_states.rend(); i != end; ++i) {
+        std::list<GameState> &curr_computed_states = computed_states[current.position];
+        for (auto i = curr_computed_states.begin(), end = curr_computed_states.end(); i != end;) {
             if (current.is_worse_than(*i)) {
                 ignore = true;
                 break;
+            }
+
+            if ((*i).is_worse_than(current)) {
+                curr_computed_states.erase(i++);
+            } else {
+                ++i;
             }
         }
 
         if (ignore) continue;
 
-        computed_states[current.position].push_back(current);
+        computed_states[current.position].push_front(current);
 
         for (auto &move : adjacency[current.position]) {
             state_queue.push(current.next(move));

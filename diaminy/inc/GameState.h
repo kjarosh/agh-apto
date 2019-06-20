@@ -10,7 +10,7 @@ struct GameState {
         return *gathered_diamonds;
     }
 
-    inline GameState next(Move &move) const {
+    inline GameState next(const Move &move) const {
         std::vector<Direction> next_moves = moves;
         next_moves.push_back(move.direction);
 

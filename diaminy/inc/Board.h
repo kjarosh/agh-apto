@@ -34,23 +34,10 @@ Direction all_directions[] = {
         UP_LEFT,
 };
 
-struct SCCMove {
-    const idx_t to_leader;
-    std::set<idx_t> diamonds;
-
-    inline static SCCMove create(idx_t to_leader, std::set<idx_t> &diamonds) {
-        return {to_leader, diamonds};
-    }
-};
-
 struct Move {
     idx_t to;
     std::set<idx_t> diamonds;
     Direction direction;
-
-    inline bool position_equals(idx_t position) {
-        return to == position;
-    }
 };
 
 class Board {
@@ -91,14 +78,6 @@ public:
 
     inline const std::set<idx_t> &get_diamond_positions() const {
         return diamond_positions;
-    }
-
-    inline dim_t get_width() const {
-        return width;
-    }
-
-    inline dim_t get_height() const {
-        return height;
     }
 
     inline idx_t to_index(dim_t x, dim_t y) const {
