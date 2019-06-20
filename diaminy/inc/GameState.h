@@ -2,9 +2,9 @@
 #define DIAMINY_GAMESTATE_H
 
 struct GameState {
-    const std::set<idx_t> gathered_diamonds;
-    const std::vector<Direction> moves;
-    const idx_t position;
+    std::set<idx_t> gathered_diamonds;
+    std::vector<Direction> moves;
+    idx_t position;
 
     inline GameState next(Move &move) const {
         std::vector<Direction> next_moves = moves;
@@ -48,6 +48,11 @@ struct GameState {
         }
         return i1 == e1 && i2 == e2;
     }
+};
+
+class GameStatePriority {
+public:
+    bool operator()(const GameState&, const GameState&);
 };
 
 #endif

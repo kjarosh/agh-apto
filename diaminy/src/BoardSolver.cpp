@@ -462,13 +462,13 @@ std::vector<SCCSolution> BoardGraph::search_within_scc0(
 }
 
 solution_t BoardGraph::bfs() {
-    std::queue<GameState> state_queue;
+    std::priority_queue<GameState, std::vector<GameState>, GameStatePriority> state_queue;
     std::vector<std::vector<GameState>> computed_states(board->get_size());
 
     state_queue.push(GameState::initial(board));
 
     while (!state_queue.empty()) {
-        const GameState current = state_queue.front();
+        const GameState current = state_queue.top();
         state_queue.pop();
 
         if (board->get_diamond_positions() == current.gathered_diamonds) {

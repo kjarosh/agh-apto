@@ -9,6 +9,7 @@ void assert_false(bool b, const char *message) {
     assert_true(!b, message);
 }
 
+// two identical states
 void test_gamestate1() {
     GameState first = {
             {1, 2, 3},
@@ -25,6 +26,7 @@ void test_gamestate1() {
     assert_false(second.is_worse_than(first), "first > second 1");
 }
 
+// differ in diamonds
 void test_gamestate2() {
     GameState first = {
             {1, 2},
@@ -41,6 +43,7 @@ void test_gamestate2() {
     assert_false(second.is_worse_than(first), "first > second 2");
 }
 
+// differ in diamonds and length
 void test_gamestate3() {
     GameState first = {
             {1, 2},
@@ -57,6 +60,7 @@ void test_gamestate3() {
     assert_false(second.is_worse_than(first), "first > second 3");
 }
 
+// differ in diamonds and length 2
 void test_gamestate4() {
     GameState first = {
             {1, 2},
@@ -69,8 +73,59 @@ void test_gamestate4() {
             0
     };
 
-    assert_false(first.is_worse_than(second), "first < second 3");
-    assert_false(second.is_worse_than(first), "first > second 3");
+    assert_false(first.is_worse_than(second), "first < second 4");
+    assert_false(second.is_worse_than(first), "first > second 4");
+}
+
+// differ in length
+void test_gamestate5() {
+    GameState first = {
+            {1, 2, 3},
+            {UP, DOWN, LEFT},
+            0
+    };
+    GameState second = {
+            {1, 2, 3},
+            {UP, UP},
+            0
+    };
+
+    assert_true(first.is_worse_than(second), "first < second 5");
+    assert_false(second.is_worse_than(first), "first > second 5");
+}
+
+// differ in diamonds
+void test_gamestate6() {
+    GameState first = {
+            {1, 2, 4},
+            {UP, DOWN},
+            0
+    };
+    GameState second = {
+            {1, 2, 3},
+            {UP, UP},
+            0
+    };
+
+    assert_false(first.is_worse_than(second), "first < second 6");
+    assert_false(second.is_worse_than(first), "first > second 6");
+}
+
+// differ in path
+void test_gamestate7() {
+    GameState first = {
+            {1, 2, 3},
+            {UP, DOWN},
+            0
+    };
+    GameState second = {
+            {1, 2, 3},
+            {UP, UP},
+            0
+    };
+
+    assert_true(first.is_worse_than(second), "first < second 7");
+    assert_false(second.is_worse_than(first), "first > second 7");
 }
 
 int test() {
@@ -79,6 +134,9 @@ int test() {
         test_gamestate2();
         test_gamestate3();
         test_gamestate4();
+        test_gamestate5();
+        test_gamestate6();
+        test_gamestate7();
     } catch (assertion_error &e) {
         std::cout << "Assertion failed: " << e.what() << '\n';
     }

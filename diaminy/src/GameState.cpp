@@ -13,7 +13,7 @@ int GameState::compare(const GameState &other) const {
 
     while (my_iter != mine_end && their_iter != theirs_end) {
         idx_t my_val = *my_iter;
-        idx_t their_val = *my_iter;
+        idx_t their_val = *their_iter;
         if (my_val > their_val) {
             they_have_more = true;
             ++their_iter;
@@ -66,14 +66,14 @@ bool GameState::is_worse_than(const GameState &other) const {
 
     while (my_iter != mine_end && their_iter != theirs_end) {
         idx_t my_val = *my_iter;
-        idx_t their_val = *my_iter;
+        idx_t their_val = *their_iter;
         if (my_val > their_val) {
             they_have_more = true;
-            if(i_have_more) return false;
+            if (i_have_more) return false;
             ++their_iter;
         } else if (my_val < their_val) {
             i_have_more = true;
-            if(they_have_more) return false;
+            if (they_have_more) return false;
             ++my_iter;
         } else {
             ++their_iter;
@@ -86,19 +86,44 @@ bool GameState::is_worse_than(const GameState &other) const {
     const bool mine_finished = my_iter == mine_end;
     const bool their_finished = their_iter == theirs_end;
 
-    if (mine_finished) {
-        if (their_finished) {
-            if (!i_have_more && !they_have_more) {
-                return other_moves_size < moves_size;
+    if (!mine_finished) i_have_more = true;
+    if (!their_finished) they_have_more = true;
+
+    bool same_diamonds = !i_have_more && !they_have_more;
+
+    if (same_diamonds) {
+        if (other_moves_size == moves_size) {
+            // states differ only in moves (length the same)
+            // taking both paths is pointless so we have to
+            // deterministically chose only one
+            // we do it by comparing paths lexicographically
+            for (size_t i = 0; i < moves.size(); ++i) {
+                if (moves[i] < other.moves[i]) {
+                    return false;
+                }
+
+                if (moves[i] > other.moves[i]) {
+                    return true;
+                }
             }
-        } else {
-            they_have_more = true;
         }
+
+        return other_moves_size < moves_size;
     }
 
-    if (they_have_more && other_moves_size <= moves_size) {
+    if (!i_have_more && they_have_more && other_moves_size <= moves_size) {
         return true;
     }
 
     return false;
+}
+
+long priority(const GameState &g) {
+    long diamonds = g.gathered_diamonds.size();
+    long moves = g.moves.size();
+    return diamonds * diamonds - moves;
+}
+
+bool GameStatePriority::operator()(const GameState &a, const GameState &b) {
+    return priority(a) < priority(b);
 }

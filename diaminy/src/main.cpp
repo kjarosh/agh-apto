@@ -1,5 +1,7 @@
 #include "all.cpp"
+#ifdef TEST
 #include "test.cpp"
+#endif
 
 int main(int argc, char **argv) {
 #ifdef TEST
