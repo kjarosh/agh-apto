@@ -117,13 +117,3 @@ bool GameState::is_worse_than(const GameState &other) const {
 
     return false;
 }
-
-long priority(const GameState &g) {
-    long diamonds = g.gathered_diamonds.size();
-    long moves = g.moves.size();
-    return diamonds * diamonds - moves;
-}
-
-bool GameStatePriority::operator()(const GameState &a, const GameState &b) {
-    return priority(a) < priority(b);
-}

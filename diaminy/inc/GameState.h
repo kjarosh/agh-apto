@@ -51,8 +51,14 @@ struct GameState {
 };
 
 class GameStatePriority {
+    inline double priority(const GameState &g) {
+        return g.gathered_diamonds.size();
+    }
+
 public:
-    bool operator()(const GameState&, const GameState&);
+    inline bool operator()(const GameState &a, const GameState &b) {
+        return priority(a) < priority(b);
+    }
 };
 
 #endif
