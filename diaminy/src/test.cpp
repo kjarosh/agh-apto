@@ -143,6 +143,9 @@ int test() {
         test_gamestate7();
     } catch (assertion_error &e) {
         std::cout << "Assertion failed: " << e.what() << '\n';
+        return 1;
     }
+
+    std::cout << "Tests OK\n";
     return 0;
 }

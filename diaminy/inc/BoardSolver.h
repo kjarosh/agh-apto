@@ -30,39 +30,12 @@ private:
 private:
     void fill_graph(idx_t position, std::set<idx_t> &filled);
 
-    void fill_transpose();
-
-    void dfs_visit(idx_t position, std::set<idx_t> &visiting, std::vector<idx_t> &visited_stack) const;
-
-    void dfs_visit_transpose(idx_t leader, idx_t ix, std::set<idx_t> &visiting);
-
-    void build_scc(std::vector<idx_t> &visited_stack);
-
-    void build_scc_graph();
-
-    std::set<idx_t> scc_find_path(std::vector<idx_t> &vector, idx_t leader);
-
-    std::vector<SCCSolution> search_within_scc(idx_t from, idx_t leader, idx_t target_leader);
-
-    std::vector<SCCSolution> search_final_within_scc(idx_t from, idx_t leader);
-
-    /**
-     * @param state current state
-     * @param leader current SCC leader
-     * @param target position we desire as the final one
-     * @return found best solution
-     */
-    std::vector<SCCSolution> search_within_scc0(
-            const GameState &state, idx_t leader, idx_t target_leader);
-
 public:
     explicit BoardGraph(Board *board);
 
     virtual ~BoardGraph();
 
     void print() const;
-
-    solution_t solve_using_scc();
 
     solution_t bfs();
 };
