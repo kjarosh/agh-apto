@@ -432,8 +432,9 @@ solution_t BoardGraph::bfs() {
         }
 
         bool ignore = false;
-        for (auto &computed_state : computed_states[current.position]) {
-            if (current.is_worse_than(computed_state)) {
+        auto &curr_computed_states = computed_states[current.position];
+        for (auto i = curr_computed_states.rbegin(), end = curr_computed_states.rend(); i != end; ++i) {
+            if (current.is_worse_than(*i)) {
                 ignore = true;
                 break;
             }
