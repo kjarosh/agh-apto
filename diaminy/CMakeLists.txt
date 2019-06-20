@@ -5,9 +5,15 @@ set(CMAKE_CXX_STANDARD 11)
 include_directories(inc)
 
 set(SOURCES src/main.cpp)
-add_compile_definitions(DEBUG)
 
 add_executable(${PROJECT_NAME} ${SOURCES})
+set_target_properties(${PROJECT_NAME} PROPERTIES
+        COMPILE_FLAGS "-DDEBUG")
+
+add_executable(${PROJECT_NAME}-test ${SOURCES})
+set_target_properties(${PROJECT_NAME}-test PROPERTIES
+        COMPILE_FLAGS "-DTEST")
+
 
 add_custom_target(onefile ALL)
 add_custom_command(

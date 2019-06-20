@@ -44,19 +44,17 @@ private:
 
     std::set<idx_t> scc_find_path(std::vector<idx_t> &vector, idx_t leader);
 
-    SCCSolution search_within_scc(idx_t from, idx_t leader, idx_t target_leader);
+    std::vector<SCCSolution> search_within_scc(idx_t from, idx_t leader, idx_t target_leader);
 
-    SCCSolution search_final_within_scc(idx_t from, idx_t leader);
+    std::vector<SCCSolution> search_final_within_scc(idx_t from, idx_t leader);
 
     /**
-     * @param computed_states best computed states per position
      * @param state current state
      * @param leader current SCC leader
      * @param target position we desire as the final one
      * @return found best solution
      */
-    SCCSolution search_within_scc0(
-            std::vector<std::vector<GameState>> &computed_states,
+    std::vector<SCCSolution> search_within_scc0(
             const GameState &state, idx_t leader, idx_t target_leader);
 
 public:

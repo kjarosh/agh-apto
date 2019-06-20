@@ -69,9 +69,11 @@ bool GameState::is_worse_than(const GameState &other) const {
         idx_t their_val = *my_iter;
         if (my_val > their_val) {
             they_have_more = true;
+            if(i_have_more) return false;
             ++their_iter;
         } else if (my_val < their_val) {
             i_have_more = true;
+            if(they_have_more) return false;
             ++my_iter;
         } else {
             ++their_iter;
@@ -94,7 +96,7 @@ bool GameState::is_worse_than(const GameState &other) const {
         }
     }
 
-    if (they_have_more && other_moves_size < moves_size) {
+    if (they_have_more && other_moves_size <= moves_size) {
         return true;
     }
 

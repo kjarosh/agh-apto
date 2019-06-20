@@ -19,8 +19,9 @@ BoardGraph::BoardGraph(Board *board) :
         scc_diamonds(board->get_size()) {
     std::set<idx_t> filled = {};
     fill_graph(board->get_ball_index(), filled);
-    /*fill_transpose();
 
+
+    /*fill_transpose();
     std::set<idx_t> visiting;
     std::vector<idx_t> visited_stack;
     dfs_visit(board->get_ball_index(), visiting, visited_stack);
@@ -120,7 +121,7 @@ solution_t BoardGraph::search() {
 solution_t BoardGraph::search0(std::vector<std::vector<GameState>> &computed_states, const GameState &state) {
     idx_t ix = state.position;
 
-    if (state.is_finished()) {
+    if (board->get_diamond_positions() == state.gathered_diamonds) {
         return state.moves;
     }
 
@@ -130,7 +131,7 @@ solution_t BoardGraph::search0(std::vector<std::vector<GameState>> &computed_sta
 
     std::vector<GameState> &current_computed_states = computed_states[ix];
     for (auto &st : current_computed_states) {
-        if (st.compare(state) > 0) {
+        if (state.is_worse_than(st)) {
             // there was already a better solution
             return {};
         }
@@ -265,28 +266,61 @@ solution_t BoardGraph::solve_using_scc() {
 
 #ifdef DEBUG
     std::cout << "Required SCC path:\n";
-    for (auto &ix:scc_leaders_path) {
+    for (auto &ix : scc_leaders_path) {
         std::cout << ix << " ";
     }
     std::cout << '\n';
 #endif
 
-    solution_t final_solution;
+    std::vector<SCCSolution> final_solutions;
+    final_solutions.push_back({{}, board->get_ball_index()});
     idx_t current_leader = first_leader;
-    idx_t current_position = board->get_ball_index();
     for (auto &next_leader : scc_leaders_path) {
         if (next_leader == current_leader) continue;
-        SCCSolution partial_solution = search_within_scc(current_position, current_leader, next_leader);
-        final_solution.insert(final_solution.end(), partial_solution.moves.begin(), partial_solution.moves.end());
+        std::vector<SCCSolution> old_final_solutions = std::move(final_solutions);
+        final_solutions = {};
+
+        for (auto old_final_solution : old_final_solutions) {
+            std::vector<SCCSolution> partial_solutions = search_within_scc(
+                    old_final_solution.final_position, current_leader, next_leader);
+
+            for (auto &partial_solution : partial_solutions) {
+                old_final_solution.moves.insert(
+                        old_final_solution.moves.end(),
+                        partial_solution.moves.begin(), partial_solution.moves.end());
+                old_final_solution.final_position = partial_solution.final_position;
+                final_solutions.push_back(old_final_solution);
+            }
+        }
 
         current_leader = next_leader;
-        current_position = partial_solution.final_position;
     }
 
-    SCCSolution partial_solution = search_final_within_scc(current_position, current_leader);
-    final_solution.insert(final_solution.end(), partial_solution.moves.begin(), partial_solution.moves.end());
+    std::vector<SCCSolution> old_final_solutions = std::move(final_solutions);
+    final_solutions = {};
 
-    return final_solution;
+    for (auto old_final_solution : old_final_solutions) {
+        std::vector<SCCSolution> partial_solutions = search_final_within_scc(
+                old_final_solution.final_position, current_leader);
+
+        for (auto &partial_solution : partial_solutions) {
+            old_final_solution.moves.insert(
+                    old_final_solution.moves.end(),
+                    partial_solution.moves.begin(), partial_solution.moves.end());
+            old_final_solution.final_position = partial_solution.final_position;
+            final_solutions.push_back(old_final_solution);
+        }
+    }
+
+    size_t best_size = SIZE_MAX;
+    SCCSolution best_solution;
+    for (auto &solution : final_solutions) {
+        if (solution.moves.size() < best_size) {
+            best_size = solution.moves.size();
+            best_solution = solution;
+        }
+    }
+    return best_solution.moves;
 }
 
 std::set<idx_t> BoardGraph::scc_find_path(std::vector<idx_t> &scc_leaders_path, idx_t leader) {
@@ -364,74 +398,67 @@ std::set<idx_t> BoardGraph::scc_find_path(std::vector<idx_t> &scc_leaders_path, 
     }
 }
 
-SCCSolution BoardGraph::search_within_scc(idx_t from, idx_t leader, idx_t target_leader) {
-    std::vector<std::vector<GameState>> computed_states(board->get_width() * board->get_height());
-    GameState initial = GameState::from(board, from);
-    return search_within_scc0(computed_states, initial, leader, target_leader);
+std::vector<SCCSolution> BoardGraph::search_within_scc(idx_t from, idx_t leader, idx_t target_leader) {
+    GameState initial = GameState::from(from);
+    return search_within_scc0(initial, leader, target_leader);
 }
 
-SCCSolution BoardGraph::search_final_within_scc(idx_t from, idx_t leader) {
-    std::vector<std::vector<GameState>> computed_states(board->get_width() * board->get_height());
-    GameState initial = GameState::from(board, from);
-    return search_within_scc0(computed_states, initial, leader, 0);
+std::vector<SCCSolution> BoardGraph::search_final_within_scc(idx_t from, idx_t leader) {
+    GameState initial = GameState::from(from);
+    return search_within_scc0(initial, leader, 0);
 }
 
-SCCSolution BoardGraph::search_within_scc0(
-        std::vector<std::vector<GameState>> &computed_states,
-        const GameState &state, idx_t leader, idx_t target_leader) {
-    idx_t ix = state.position;
+std::vector<SCCSolution> BoardGraph::search_within_scc0(
+        const GameState &original_state, idx_t leader, idx_t target_leader) {
+    std::queue<GameState> state_queue;
+    std::vector<std::vector<GameState>> computed_states(board->get_size());
 
-    if (target_leader == 0 && state.gathered_diamonds == scc_diamonds[leader]) {
-        return {state.moves, state.position};
-    }
-
-    if (target_leader != 0 && scc_leader_mapping[state.position] == target_leader) {
-        return {state.moves, state.position};
-    }
-
-    if (scc_leader_mapping[state.position] != leader) {
-        throw no_solution_exception();
-    }
-
-    if (state.moves.size() >= board->get_max_moves()) {
-        throw no_solution_exception();
-    }
-
-    std::vector<GameState> &current_computed_states = computed_states[ix];
-    for (auto &st : current_computed_states) {
-        if (st.compare(state) > 0) {
-            // there was already a better solution
-            throw no_solution_exception();
-        }
-    }
-
-    computed_states[ix].push_back(state);
-
+    std::set<idx_t> solved_targets;
     std::vector<SCCSolution> solutions;
 
-    for (auto &move : adjacency[ix]) {
-        try {
-            SCCSolution ret = search_within_scc0(computed_states, state.next(move), leader, target_leader);
-            solutions.push_back(ret);
-        } catch (no_solution_exception &e) {
+    state_queue.push(original_state);
+
+    while (!state_queue.empty()) {
+        const GameState current = state_queue.front();
+        state_queue.pop();
+
+        if (current.gathered_diamonds == scc_diamonds[leader]) {
+            if (target_leader == 0 || scc_leader_mapping[current.position] == target_leader) {
+                if (solved_targets.find(current.position) == solved_targets.end()) {
+                    solved_targets.insert(current.position);
+                    solutions.push_back({current.moves, current.position});
+                }
+                continue;
+            }
+        }
+
+        if (scc_leader_mapping[current.position] != leader) {
+            // outside of the scc
             continue;
         }
-    }
 
-    SCCSolution best = {};
-    size_t best_size = SIZE_MAX;
-    for (auto &s: solutions) {
-        if (s.moves.size() < best_size) {
-            best_size = s.moves.size();
-            best = s;
+        if (current.moves.size() >= board->get_max_moves()) {
+            continue;
+        }
+
+        bool ignore = false;
+        for (auto &computed_state : computed_states[current.position]) {
+            if (current.is_worse_than(computed_state)) {
+                ignore = true;
+                break;
+            }
+        }
+
+        if (ignore) continue;
+
+        computed_states[current.position].push_back(current);
+
+        for (auto &move : adjacency[current.position]) {
+            state_queue.push(current.next(move));
         }
     }
 
-    if (best.moves.empty()) {
-        throw no_solution_exception();
-    }
-
-    return best;
+    return solutions;
 }
 
 solution_t BoardGraph::bfs() {
@@ -444,7 +471,7 @@ solution_t BoardGraph::bfs() {
         const GameState current = state_queue.front();
         state_queue.pop();
 
-        if (current.is_finished()) {
+        if (board->get_diamond_positions() == current.gathered_diamonds) {
             return current.moves;
         }
 

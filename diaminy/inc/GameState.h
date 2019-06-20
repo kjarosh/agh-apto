@@ -2,7 +2,6 @@
 #define DIAMINY_GAMESTATE_H
 
 struct GameState {
-    const Board *board;
     const std::set<idx_t> gathered_diamonds;
     const std::vector<Direction> moves;
     const idx_t position;
@@ -16,7 +15,6 @@ struct GameState {
                   std::inserter(next_diamonds, next_diamonds.begin()));
 
         return (GameState) {
-                board,
                 std::move(next_diamonds),
                 std::move(next_moves),
                 move.to
@@ -28,15 +26,11 @@ struct GameState {
     bool is_worse_than(const GameState &state) const;
 
     inline static GameState initial(const Board *board) {
-        return {board, {}, {}, board->get_ball_index()};
+        return {{}, {}, board->get_ball_index()};
     }
 
-    inline static GameState from(const Board *board, const idx_t from) {
-        return {board, {}, {}, from};
-    }
-
-    inline bool is_finished() const {
-        return board->get_diamond_positions() == gathered_diamonds;
+    inline static GameState from(const idx_t from) {
+        return {{}, {}, from};
     }
 
     inline bool operator==(const GameState &g) const {
