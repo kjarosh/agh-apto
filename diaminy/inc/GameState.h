@@ -21,8 +21,6 @@ struct GameState {
         };
     }
 
-    int compare(const GameState &other) const;
-
     bool is_worse_than(const GameState &state) const;
 
     inline static GameState initial(const Board *board) {

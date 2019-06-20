@@ -40,8 +40,6 @@ private:
 
     void build_scc_graph();
 
-    solution_t search0(std::vector<std::vector<GameState>> &computed_states, const GameState &state);
-
     std::set<idx_t> scc_find_path(std::vector<idx_t> &vector, idx_t leader);
 
     std::vector<SCCSolution> search_within_scc(idx_t from, idx_t leader, idx_t target_leader);
@@ -63,8 +61,6 @@ public:
     virtual ~BoardGraph();
 
     void print() const;
-
-    solution_t search();
 
     solution_t solve_using_scc();
 

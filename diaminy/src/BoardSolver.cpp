@@ -112,54 +112,6 @@ void BoardGraph::print() const {
     std::cout << '\n';
 }
 
-solution_t BoardGraph::search() {
-    std::vector<std::vector<GameState>> computed_states(board->get_width() * board->get_height());
-    GameState initial = GameState::initial(board);
-    return search0(computed_states, initial);
-}
-
-solution_t BoardGraph::search0(std::vector<std::vector<GameState>> &computed_states, const GameState &state) {
-    idx_t ix = state.position;
-
-    if (board->get_diamond_positions() == state.gathered_diamonds) {
-        return state.moves;
-    }
-
-    if (state.moves.size() >= board->get_max_moves()) {
-        return {};
-    }
-
-    std::vector<GameState> &current_computed_states = computed_states[ix];
-    for (auto &st : current_computed_states) {
-        if (state.is_worse_than(st)) {
-            // there was already a better solution
-            return {};
-        }
-    }
-
-    computed_states[ix].push_back(state);
-
-    std::vector<solution_t> solutions;
-
-    for (auto &move : adjacency[ix]) {
-        solution_t ret = search0(computed_states, state.next(move));
-        if (ret.empty()) continue;
-
-        solutions.push_back(ret);
-    }
-
-    solution_t best = {};
-    size_t best_size = SIZE_MAX;
-    for (auto &s : solutions) {
-        if (s.size() < best_size) {
-            best_size = s.size();
-            best = s;
-        }
-    }
-
-    return best;
-}
-
 void BoardGraph::dfs_visit(idx_t position, std::set<idx_t> &visiting, std::vector<idx_t> &visited_stack) const {
     visiting.insert(position);
 
