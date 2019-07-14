@@ -58,9 +58,10 @@ Pozycje diamentów znajdują się na krawędziach.
 Aby znaleźć rozwiązanie należy przeszukiwać graf za pomocą algorytmu BFS.
 Użycie algorytmu DFS byłoby bardzo nieefektywne w przypadku gdy istnieje
 rozwiązanie mające dużo mniej ruchów niż podane maksimum.
-Dodatkowo generowane grafy przeważnie mają bardzo dużo cykli więc
+Dodatkowo generowane grafy przeważnie mają bardzo dużo cykli i alternatywnych
+ścieżek, więc
 DFS zmuszałby do trawersowania grafu po ścieżkach bardzo nieoptymalnych.
-Sytuacja ta zilustrowana jest na rysunku~\ref{fig:dfs-vs-bfs}.
+Przykład takiej sytuacji zilustrowany jest na rysunku~\ref{fig:dfs-vs-bfs}.
 
 W przypadku użycia DFS, po przejściu przez B do C (czerwona ścieżka) jesteśmy
 zmuszeni przeglądnąć całą resztę grafu.
@@ -68,7 +69,7 @@ Gdy użyjemy BFS, będąc w C (ścieżka czerwona) jesteśmy w stanie stwierdzi�
 że już tu byliśmy i wtedy mieliśmy lepszy stan\footnotemark{} (niebieska ścieżka).
 Wtedy można zaprzestać dalszego przeszukiwania.
 
-\footnotetext{lepszy stan --- np.\@ tyle samo zebranych diamentów, lecz krótsza ścieżka}
+\footnotetext{lepszy stan --- np.~tyle samo zebranych diamentów, lecz krótsza ścieżka}
 
 \vspace{1cm}
 
@@ -88,6 +89,55 @@ Wtedy można zaprzestać dalszego przeszukiwania.
     \label{fig:dfs-vs-bfs}
 \end{figure}
 
+\section{Przechowywanie i porównywanie stanów gry}
+
+Aby zapobiec niepotrzebnym przejściom po grafie została wprowadzona idea
+obiektu, który reprezentuje stan gry w danym jej momencie.
+Stan gry zawiera trzy atrybuty: \texttt{pos}, \texttt{moves} oraz
+\texttt{diamonds}:
+\begin{itemize}\itemsep0pt
+    \item \texttt{pos} --- aktualna pozycja na planszy,
+    \item \texttt{moves} --- ciąg ruchów, które zostały wykonane,
+    \item \texttt{diamonds} --- zbiór diamentów, które zebraliśmy po drodze.
+\end{itemize}
+
+Stanem gry jest więc na przykład
+\texttt{\{pos=15, moves=(0, 0, 2, 6, 2), diamonds=\{1, 4, 8\}\}},
+który oznacza że wykonawszy ruchy góra, góra, prawo, lewo, prawo, zebraliśmy
+diamenty 1, 4, 8 i wylądowaliśmy w pozycji\footnotemark{} 15.
+\footnotetext{zarówno pozycja jak i numer diamentu obliczane są jako
+\texttt{x + y * board\_width}}
+
+Zbiór powyższych stanów jest częściowo uporządkowany ze względu na relację
+gorszy-lepszy (w odniesieniu do celu zadania).
+Używając właśnie tego porządku można skutecznie eliminować stany gry, które
+są niekorzystne dla czasu obliczeń.
+Wiedząc, iż w danym miejscu isnieje stan lepszy od aktualnego,
+bez sensu jest kontynuować obliczenia dla tego stanu, gdyż stan lepszy
+da nam na pewno nie gorsze rozwiązanie.
+
+Warto więc zdefiniować relację $\preccurlyeq$ dla dwóch stanów jako:
+
+\begin{gather*}
+a \preccurlyeq b
+\iff
+\begin{cases}
+    a.\text{pos} = b.\text{pos} \\
+    a.\text{diamonds} \subseteq b.\text{diamonds} \\
+    |a.\text{moves}| \leq |b.\text{moves}|
+\end{cases}
+\end{gather*}
+
+Dzięki temu przy obliczeniu nowego stanu gry w danej pozycji można pozbyć się
+stanów ``gorszych'', a tym sposobem zaoszczędzić czasu na obliczenia.
+
+
+
+
+
+
+
+Pseudokod algorytmu używającego
 
 
 
@@ -96,16 +146,16 @@ Wtedy można zaprzestać dalszego przeszukiwania.
     \begin{algorithmic}[1]
         \Procedure{BFS\_diaminy}{}
         \State queue <- empty queue
-        \State computed <- array indexed by positions
+        \State computed\_states <- array indexed by positions
         \item[]
         \State queue.push(initial\_state)
         \item[]
         \For {pos <- all positions}
-        \State computed[pos] <- empty list
+        \State computed\_states[pos] <- empty list
         \EndFor
         \item[]
 
-        \While {not queue.empty()}
+        \While {queue is not empty}
         \State current <- queue.pop()
         \item[]
 
@@ -119,12 +169,12 @@ Wtedy można zaprzestać dalszego przeszukiwania.
         \EndIf
         \item[]
 
-        \If {computed[current.position] has a better state}
+        \If {computed\_states[current.position] has a better state}
         \State \textbf{continue}
         \EndIf
         \item[]
 
-        \State computed[current.position].add(current)
+        \State computed\_states[current.position].add(current)
         \item[]
 
         \For {child <- adjacent[current.position]}
@@ -137,3 +187,10 @@ Wtedy można zaprzestać dalszego przeszukiwania.
         \EndProcedure
     \end{algorithmic}
 \end{algorithm}
+
+
+\section{Dodatkowe optymalizacje}
+
+\subsection*{Współdzielenie pamięci dla ruchów}
+
+\subsection*{Deduplikacja stanów podobnych}
